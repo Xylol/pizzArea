@@ -78,7 +78,7 @@ function App() {
     }}>
       <h1 style={{ marginBottom: 'var(--space-s)', textAlign: 'center', fontSize: 'clamp(1.5rem, 5vw, 2rem)' }}>PizzArea Calculator</h1>
       <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--space-m)', textAlign: 'center' }}>
-        Calculate pizza value: pizza per money
+        Calculate pizza per money, value counts
       </p>
 
       <div style={{

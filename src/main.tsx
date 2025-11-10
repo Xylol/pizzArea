@@ -32,7 +32,8 @@ style.innerHTML = `
     box-sizing: inherit;
   }
 
-  input {
+  input[type="text"],
+  input[type="number"] {
     background: var(--color-surface);
     color: var(--color-text);
     border: 1px solid var(--color-border);
@@ -42,7 +43,8 @@ style.innerHTML = `
     width: 100%;
   }
 
-  input:focus {
+  input[type="text"]:focus,
+  input[type="number"]:focus {
     outline: none;
     border-color: var(--color-primary);
   }

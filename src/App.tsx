@@ -1,25 +1,21 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
-interface CircularPizza {
-  type: 'circular'
-  diameter: number
+type Pizza = {
+  type: 'circular' | 'rectangular'
+  diameter?: number
+  width?: number
+  height?: number
   price: number
+  name?: string
 }
-
-interface RectangularPizza {
-  type: 'rectangular'
-  width: number
-  height: number
-  price: number
-}
-
-type Pizza = CircularPizza | RectangularPizza
 
 function calculateArea(pizza: Pizza): number {
   if (pizza.type === 'circular') {
+    if (!pizza.diameter) return 0
     const radius = pizza.diameter / 2
     return Math.PI * radius * radius
   } else {
+    if (!pizza.width || !pizza.height) return 0
     return pizza.width * pizza.height
   }
 }
@@ -27,6 +23,14 @@ function calculateArea(pizza: Pizza): number {
 function calculateValuePerMoney(pizza: Pizza): number {
   const area = calculateArea(pizza)
   return pizza.price > 0 ? area / pizza.price : 0
+}
+
+function formatPizzaDescription(pizza: Pizza): string {
+  if (pizza.type === 'circular') {
+    return `Round: ${pizza.diameter} diameter`
+  }
+
+  return `Rectangle: ${pizza.width} × ${pizza.height}`
 }
 
 function App() {
@@ -40,24 +44,41 @@ function App() {
   const [rectHeight, setRectHeight] = useState('')
   const [rectPrice, setRectPrice] = useState('')
 
+  const [pizzaName, setPizzaName] = useState('')
+
+  const diameterInputRef = useRef<HTMLInputElement>(null)
+  const widthInputRef = useRef<HTMLInputElement>(null)
+
   const addPizza = () => {
     if (pizzaType === 'circular') {
       const diameter = parseFloat(circularDiameter)
       const price = parseFloat(circularPrice)
       if (!isNaN(diameter) && !isNaN(price) && diameter > 0 && price > 0) {
-        setPizzas([...pizzas, { type: 'circular', diameter, price }])
+        const pizza: Pizza = { type: 'circular', diameter, price }
+        if (pizzaName.trim()) {
+          pizza.name = pizzaName.trim()
+        }
+        setPizzas([...pizzas, pizza])
         setCircularDiameter('')
         setCircularPrice('')
+        setPizzaName('')
+        setTimeout(() => diameterInputRef.current?.focus(), 0)
       }
     } else {
       const width = parseFloat(rectWidth)
       const height = parseFloat(rectHeight)
       const price = parseFloat(rectPrice)
       if (!isNaN(width) && !isNaN(height) && !isNaN(price) && width > 0 && height > 0 && price > 0) {
-        setPizzas([...pizzas, { type: 'rectangular', width, height, price }])
+        const pizza: Pizza = { type: 'rectangular', width, height, price }
+        if (pizzaName.trim()) {
+          pizza.name = pizzaName.trim()
+        }
+        setPizzas([...pizzas, pizza])
         setRectWidth('')
         setRectHeight('')
         setRectPrice('')
+        setPizzaName('')
+        setTimeout(() => widthInputRef.current?.focus(), 0)
       }
     }
   }
@@ -67,6 +88,10 @@ function App() {
   }
 
   const sortedPizzas = [...pizzas].sort((a, b) => calculateValuePerMoney(b) - calculateValuePerMoney(a))
+
+  const isFormValid = pizzaType === 'circular'
+    ? circularDiameter && circularPrice && parseFloat(circularDiameter) > 0 && parseFloat(circularPrice) > 0
+    : rectWidth && rectHeight && rectPrice && parseFloat(rectWidth) > 0 && parseFloat(rectHeight) > 0 && parseFloat(rectPrice) > 0
 
   return (
     <div style={{
@@ -81,14 +106,22 @@ function App() {
         Calculate pizza per money, value counts
       </p>
 
-      <div style={{
-        background: 'var(--color-surface)',
-        padding: 'clamp(1rem, 4vw, 2rem)',
-        borderRadius: 'var(--radius)',
-        maxWidth: '500px',
-        width: '100%',
-        marginBottom: 'var(--space-m)',
-      }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (isFormValid) {
+            addPizza()
+          }
+        }}
+        style={{
+          background: 'var(--color-surface)',
+          padding: 'clamp(1rem, 4vw, 2rem)',
+          borderRadius: 'var(--radius)',
+          maxWidth: '500px',
+          width: '100%',
+          marginBottom: 'var(--space-m)',
+        }}
+      >
         <div style={{ marginBottom: 'var(--space-s)' }}>
           <label style={{ display: 'block', marginBottom: '0.75rem' }}>Pizza Type:</label>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
@@ -124,6 +157,7 @@ function App() {
             <div style={{ marginBottom: 'var(--space-s)' }}>
               <label htmlFor="circular-diameter" style={{ display: 'block', marginBottom: '0.5rem' }}>Diameter:</label>
               <input
+                ref={diameterInputRef}
                 type="number"
                 id="circular-diameter"
                 name="diameter"
@@ -142,9 +176,21 @@ function App() {
                 name="price"
                 value={circularPrice}
                 onChange={(e) => setCircularPrice(e.target.value)}
-                placeholder="e.g., 10"
+                placeholder="e.g., 15"
                 min="0"
                 step="0.01"
+              />
+            </div>
+            <div style={{ marginBottom: 'var(--space-s)' }}>
+              <label htmlFor="pizza-name" style={{ display: 'block', marginBottom: '0.5rem' }}>Name:</label>
+              <input
+                type="text"
+                id="pizza-name"
+                name="name"
+                value={pizzaName}
+                onChange={(e) => setPizzaName(e.target.value)}
+                placeholder="optional name"
+                style={{ color: pizzaName ? 'var(--color-text)' : 'var(--color-text-secondary)' }}
               />
             </div>
           </>
@@ -154,6 +200,7 @@ function App() {
               <div style={{ flex: 1 }}>
                 <label htmlFor="rect-width" style={{ display: 'block', marginBottom: '0.5rem' }}>Width:</label>
                 <input
+                  ref={widthInputRef}
                   type="number"
                   id="rect-width"
                   name="width"
@@ -186,33 +233,55 @@ function App() {
                 name="price"
                 value={rectPrice}
                 onChange={(e) => setRectPrice(e.target.value)}
-                placeholder="e.g., 12"
+                placeholder="e.g., 23"
                 min="0"
                 step="0.01"
+              />
+            </div>
+            <div style={{ marginBottom: 'var(--space-s)' }}>
+              <label htmlFor="pizza-name" style={{ display: 'block', marginBottom: '0.5rem' }}>Name:</label>
+              <input
+                type="text"
+                id="pizza-name"
+                name="name"
+                value={pizzaName}
+                onChange={(e) => setPizzaName(e.target.value)}
+                placeholder="optional name"
+                style={{ color: pizzaName ? 'var(--color-text)' : 'var(--color-text-secondary)' }}
               />
             </div>
           </>
         )}
 
         <button
-          onClick={addPizza}
+          type="submit"
+          disabled={!isFormValid}
           style={{
             width: '100%',
             padding: '0.75rem',
-            background: 'var(--color-primary)',
+            background: isFormValid ? 'var(--color-primary)' : '#52525b',
             color: 'var(--color-text)',
             border: 'none',
             borderRadius: 'var(--radius)',
             fontSize: '1rem',
-            cursor: 'pointer',
+            cursor: isFormValid ? 'pointer' : 'not-allowed',
             transition: 'background 0.2s',
+            opacity: isFormValid ? 1 : 0.6,
           }}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-hover)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-primary)'}
+          onMouseEnter={(e) => {
+            if (isFormValid) {
+              e.currentTarget.style.background = 'var(--color-primary-hover)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (isFormValid) {
+              e.currentTarget.style.background = 'var(--color-primary)'
+            }
+          }}
         >
           Add Pizza
         </button>
-      </div>
+      </form>
 
       {sortedPizzas.length > 0 && (
         <div style={{
@@ -238,11 +307,13 @@ function App() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                    {pizza.name && (
+                      <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', wordWrap: 'break-word' }}>
+                        {pizza.name}
+                      </div>
+                    )}
                     <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', wordWrap: 'break-word' }}>
-                      {pizza.type === 'circular'
-                        ? `Round: ${pizza.diameter} diameter`
-                        : `Rectangle: ${pizza.width} × ${pizza.height}`
-                      }
+                      {formatPizzaDescription(pizza)}
                       {bestValue && <span style={{ color: 'var(--color-primary)', marginLeft: '0.5rem', display: 'inline-block' }}>BEST VALUE</span>}
                     </div>
                     <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
